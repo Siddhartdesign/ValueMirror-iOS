@@ -419,7 +419,10 @@ function mapVal(v, B){
 async function startCamera(){
   try{
     if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode}});
+    const s = await navigator.mediaDevices.getUserMedia({
+  video: { facingMode },
+  audio: false
+});
     video.srcObject=s;
     await video.play();
   }catch(e){ console.log("cam error", e); }
@@ -696,56 +699,58 @@ fileInput.onchange=(e)=>{
   R.readAsDataURL(f);
 };
  
-/* SNAPSHOT */
-snapshotBtn.onclick=()=>{
+snapshotBtn.onclick = async () => {
 
+  if (!video.srcObject) {
+    await startCamera();
+    return; // first tap just starts camera
+  }
 
-  const w=reference.width, h=reference.height;
-  const tmp=createC(w,h);
-  const t=tmp.getContext("2d");
+  const w = reference.width, h = reference.height;
+  const tmp = createC(w, h);
+  const t = tmp.getContext("2d");
 
-  if(viewMode==="reference"){
-    if(massingTones===5) t.drawImage(ref5,0,0);
-    else if(massingTones===3) t.drawImage(ref3,0,0);
-    else t.drawImage(refO,0,0);
+  if (viewMode === "reference") {
+    if (massingTones === 5) t.drawImage(ref5, 0, 0);
+    else if (massingTones === 3) t.drawImage(ref3, 0, 0);
+    else t.drawImage(refO, 0, 0);
   } else {
-    if(massingTones) t.drawImage(massing,0,0);
+    if (massingTones) t.drawImage(massing, 0, 0);
     else {
-      /* === NEW FEATURE: Snapshot frozen or live START === */
       const source = isFrozen ? frozen : video;
-      t.drawImage(source,0,0,w,h);
-      /* === NEW FEATURE: Snapshot frozen or live END === */
+      t.drawImage(source, 0, 0, w, h);
     }
   }
-if (!isPro) {
-  t.save();
-  t.globalAlpha = 0.22;                 // stronger but still classy
-  t.fillStyle = "#fff";
-  t.font = "20px system-ui";            // bigger
-  t.textAlign = "right";
-  t.fillText("Value Mirror : Made by SidArtDesign ©", w - 20, h - 20);
-  t.restore();
-}
 
+  if (!isPro) {
+    t.save();
+    t.globalAlpha = 0.22;
+    t.fillStyle = "#fff";
+    t.font = "20px system-ui";
+    t.textAlign = "right";
+    t.fillText("Value Mirror : Made by SidArtDesign ©", w - 20, h - 20);
+    t.restore();
+  }
 
-  const data=tmp.toDataURL();
+  const data = tmp.toDataURL();
   const viewer = document.getElementById("snapshot-viewer");
-const imgEl = document.getElementById("snapshot-img");
+  const imgEl = document.getElementById("snapshot-img");
 
-imgEl.src = data;
-viewer.style.display = "block";
+  imgEl.src = data;
+  viewer.style.display = "block";
 
-  const img=new Image();
-  img.onload=()=>{
-    hasReference=true;
-    viewMode="reference";
-    generateRefVariants(img, massingTones || 3); // will apply SeeValue
+  const img = new Image();
+  img.onload = () => {
+    hasReference = true;
+    viewMode = "reference";
+    generateRefVariants(img, massingTones || 3);
     renderReference();
-    snapshotBtn.textContent="Resume Live";
+    snapshotBtn.textContent = "Resume Live";
     updateUI();
   };
-  img.src=data;
+  img.src = data;
 };
+
 
 /* === NEW FEATURE: Freeze Camera Button Handler START === */
 freezeBtn.onclick=()=>{
@@ -844,12 +849,7 @@ if (unlockProBtn) {
     updateUI();
   }
 });
-/* INIT */
-startCamera().then(()=>{
-  applyTransforms();
-  updateUI();
-  massingLoop();
- });
+
   if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
